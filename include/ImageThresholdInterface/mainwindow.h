@@ -88,6 +88,13 @@ public Q_SLOTS:
      void on_boundcircleCheck_clicked();
      void on_approxpolyCheck_clicked();
 
+     void on_houghCheck_clicked();
+
+     void on_houghMinRadius_valueChanged(int value);
+     void on_houghMaxRadius_valueChanged(int value);
+
+     void on_houghLinesCheck_clicked();
+
      // manual callbacks
      void on_updateImages(); 
      //i->colorImage->mouseDoubleClickEvent();
@@ -115,6 +122,10 @@ private:
     bool draw_contours;
 
     bool rectContours, circleContours, polyContours;
+
+    bool hough_enabled, hough_lines_enabled;
+
+    int min_radius, max_radius;
 };
 
 

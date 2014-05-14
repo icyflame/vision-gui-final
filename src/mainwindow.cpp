@@ -51,6 +51,12 @@ MyWindow::MyWindow(QWidget *parent) :
     circleContours = false;
     polyContours = false;
 
+    min_radius = 0;
+    max_radius = 0;
+
+    hough_enabled = false;
+    hough_lines_enabled = false;
+
 }
 
 void MyWindow::setThresh()
@@ -372,6 +378,29 @@ void MyWindow::on_approxpolyCheck_clicked(){
     polyContours = !polyContours;
 }
 
+void MyWindow::on_houghCheck_clicked(){
+    hough_enabled = !hough_enabled;
+}
+
+void MyWindow::on_houghMinRadius_valueChanged(int value){
+    min_radius = value;
+
+    std::ostringstream str;
+    str << value;
+    ui->houghMinRadiusLineEdit->setText(QString(str.str().c_str()));
+}
+
+void MyWindow::on_houghMaxRadius_valueChanged(int value){
+    max_radius = value;
+
+    std::ostringstream str;
+    str << value;
+    ui->houghMaxRadiusLineEdit->setText(QString(str.str().c_str()));
+}
+
+void MyWindow::on_houghLinesCheck_clicked(){
+    hough_lines_enabled = !hough_lines_enabled;
+}
 
 void MyWindow::on_BlobValue_slider_valueChanged(int value)
 {
@@ -483,11 +512,38 @@ void MyWindow::on_updateImages()
 
         }
 
+        if(hough_enabled){
+
+            vector<Vec3f> circles;
+            /// Apply the Hough Transform to find the circles
+            HoughCircles( thImage, circles, CV_HOUGH_GRADIENT, 2, thImage.rows/8, 200, 100, min_radius, max_radius);
+
+            /// Draw the circles detected
+            for( size_t i = 0; i < circles.size(); i++ )
+            {
+                Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+                int radius = cvRound(circles[i][2]);
+                // circle center
+                circle( colorImage, center, 3, Scalar(0,255,0), -1, 8, 0 );
+                // circle outline
+                circle( colorImage, center, radius, Scalar(0,0,255), 3, 8, 0 );
+            }
+
+        }
+
+        if(hough_lines_enabled){
+
+            vector<Vec4i> lines;
+            HoughLinesP(thImage, lines, 1, CV_PI/180, 50, 50, 10 );
+            for( size_t i = 0; i < lines.size(); i++ )
+            {
+                Vec4i l = lines[i];
+                line( colorImage, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0,0,255), 3, CV_AA);
+            }
+
+        }
+
         displayImages();
-    }
-    else
-    {
-        
     }
 }
 
