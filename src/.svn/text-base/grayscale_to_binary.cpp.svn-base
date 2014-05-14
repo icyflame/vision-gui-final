@@ -1,0 +1,94 @@
+#include <grayscale_to_binary.hpp>
+namespace ohe_framework
+{
+bool grayscaleToBinary(ImageMatrixUchar& input,ImageMatrixUchar& output,unsigned char threshold)
+{
+	if((!input.isMatrixFree()))
+	{
+	  if(input.getNoOfChannels()==1)
+	  {
+	    if(output.isMatrixFree())
+		{
+		  output.newMatrix(input.getCols(),input.getRows(),1);
+		  if(thresholdImage(input,output,threshold))
+		  {
+		    return true;
+		  }
+		  else
+		  {
+		    output.releaseMatrix();
+			return false;
+		  }
+		}
+		else
+		{
+		  if(input.getRows()==output.getRows())
+		  {
+		    if(input.getCols()==output.getCols())
+			{
+			  if(input.getElemSize()==output.getElemSize())
+			  {
+                              return thresholdImage(input,output,threshold);
+			  }
+			  else
+			  {
+			    printErrorMessage("Input Matrix and output matrix datasize not matched");
+				return false;
+			  }
+			}
+			else
+			{
+			  printErrorMessage("Input Matrix and output matrix cols not matched");
+			  return false;
+			}			
+		  }
+		  else
+		  {
+		    printErrorMessage("Input Matrix and output matrix rows not matched");
+	        return false;
+		  }
+		}
+	  }
+	  else
+	  {
+	    printErrorMessage("Input Matrix is not greyscale matrix");
+	    return false;
+	  }
+	}
+	else
+	{
+	  printErrorMessage("Input Matrix is not allocated");
+	  return false;
+	}
+	
+}
+bool thresholdImage(ImageMatrixUchar& input, ImageMatrixUchar& output, unsigned char threshold)
+{
+    unsigned short rows = input.getRows();
+    unsigned short cols = input.getCols();
+    unsigned int input_widthstep = input.getWidthstep();
+    unsigned int output_widthstep = output.getWidthstep();
+    unsigned char *input_data = input.getDataPointer();
+    unsigned char *output_data = output.getDataPointer();
+    for(short i=0;i<rows;i++)
+    {
+        for(short j=0;j<cols;j++)
+        {
+            if(input_data[i*input_widthstep+j]<threshold)
+            {
+                output_data[i*output_widthstep+j]=0;
+            }
+            else
+            {
+                output_data[i*output_widthstep+j]=255;
+            }
+        }
+    }
+    return true;
+}
+bool smoothImage(ImageMatrixUchar &input,ImageMatrixFloat &filter)
+{
+  return true;  
+}
+
+}// end namespace ohe_framework

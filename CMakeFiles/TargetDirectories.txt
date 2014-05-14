@@ -1,0 +1,1 @@
+/home/madhukar/ros_workspace/ikat-auv-packages/ImageThresholdInterface/CMakeFiles/testing.dir

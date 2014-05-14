@@ -1,0 +1,77 @@
+#ifndef MATRIX_H
+#define MATRIX_H
+
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <cmath>
+#include <points.hpp>
+#include <printing.hpp>
+namespace ohe_framework {
+
+class ImageMatrixBase
+{
+protected :
+    unsigned short rows;
+    unsigned short cols;
+    unsigned int widthstep;
+    bool is_free;
+    bool is_ROI_set;
+    unsigned short roi_rows;
+    unsigned short roi_cols;
+    unsigned char* data;
+    unsigned char* roi_data;
+    unsigned char channels;
+    unsigned char elem_size;
+    unsigned char* getPointer();
+    bool allocateMemory(long size);
+    bool createMatrix(unsigned short x, unsigned short y,
+                      unsigned char noofchannels,unsigned char size);
+public :
+    unsigned char getData(unsigned short x, unsigned short y);
+    unsigned char getNoOfChannels();
+    unsigned int getWidthstep();
+    ImageMatrixBase();
+    //bool setData(unsigned short x, unsigned short y){}
+    bool isMatrixFree();
+    bool isROISet();
+    bool matToMatrix(cv::Mat& input);
+    bool matrixToMat(cv::Mat& input);
+    bool releaseMatrix();
+    bool setROI(Point& start, Point& range);
+    bool removeROI();
+    unsigned short getRows();
+    unsigned short getCols();
+    unsigned char getElemSize();
+    virtual ~ImageMatrixBase();
+};
+
+class ImageMatrixUchar: public ImageMatrixBase
+{
+protected :
+    
+public:
+    ImageMatrixUchar();
+    ~ImageMatrixUchar();
+    bool setData(unsigned short x, unsigned short y,unsigned char value);
+    bool newMatrix(unsigned short x, unsigned short y, unsigned char noofchannels);
+    unsigned char* getDataPointer();
+};
+
+class ImageMatrixFloat: public ImageMatrixBase
+{
+protected :
+    float* data_float;
+public :
+    ImageMatrixFloat();
+    ~ImageMatrixFloat();
+    bool setData(unsigned short x, unsigned short y,float value);
+    bool newMatrix(unsigned short x, unsigned short y, unsigned char noofchannels);
+    float getData(unsigned short x, unsigned short y);
+    float* getDataPointer();
+};
+
+bool copy(ImageMatrixUchar &input, ImageMatrixUchar &output);
+
+} // namespace ohe_framework
+#endif

@@ -1,0 +1,57 @@
+#ifndef POINTS_H
+#define POINTS_H
+#include <printing.hpp>
+#include <vector>
+namespace ohe_framework {
+
+class Point
+{
+public:
+	unsigned int x;
+	unsigned int y;
+	Point();
+	Point(unsigned short x_value,unsigned short y_value);
+	~Point();
+};
+
+
+class Blob
+{
+protected:
+	std::vector<Point> points;
+	unsigned int no_of_points;
+	Point center,start,end;
+        bool center_calculated;
+        bool rectangle_found;
+public:
+	Blob();
+	~Blob();
+	int getNoOfPoints();
+	void addPoint(Point point);
+	bool addPoint(Point point, const int index);
+	bool removePoint(Point& point);
+	bool removePoint(int index);
+	int getArea();
+	void getCenter(Point &_center);
+        std::vector<Point>* getPoints();
+	void getBoundingRectangle(Point& _start,Point& _end);
+};
+
+class CircularBufferPoint{
+public:
+    CircularBufferPoint(int slot=0);
+    ~CircularBufferPoint();
+    bool write(Point &upper,Point &lower);
+    bool read(int index, Point &upper, Point &lower);
+    int getWriteIndex();
+    void clear();
+private:
+    Point* uppers;
+    Point* lowers;
+    int no_of_slots;
+    int write_index;
+    int read_index;
+};
+
+} // end namespace ohe_framework
+#endif

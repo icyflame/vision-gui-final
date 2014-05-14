@@ -1,0 +1,334 @@
+#include <matrix.hpp>
+
+namespace ohe_framework{
+
+
+ImageMatrixBase::ImageMatrixBase()
+{
+    roi_rows = rows = 0;
+    roi_cols = cols = 0;
+    widthstep = 0;
+    elem_size = 0;
+    is_free = true;
+    is_ROI_set = false;
+}
+bool ImageMatrixBase::isMatrixFree()
+{
+    return is_free;
+}
+bool ImageMatrixBase::isROISet()
+{
+    return is_ROI_set;
+}
+unsigned char* ImageMatrixBase::getPointer()
+{
+    return roi_data;
+}
+unsigned char ImageMatrixBase::getData(unsigned short x, unsigned short y)
+{
+    if((x<roi_cols)&&(y<roi_rows))
+    {
+        return data[y*widthstep+x];
+    }
+    else
+    {
+        printErrorMessage("not inside the matrix");
+        return 0;
+    }
+}
+unsigned short ImageMatrixBase::getCols()
+{
+   return roi_cols;
+}
+unsigned short ImageMatrixBase::getRows()
+{
+    return roi_rows;
+    
+}
+unsigned char ImageMatrixBase::getElemSize()
+{
+    return elem_size;
+}
+unsigned char ImageMatrixBase::getNoOfChannels()
+{
+    return channels;
+}
+unsigned int ImageMatrixBase::getWidthstep()
+{
+    return widthstep;
+}
+
+bool ImageMatrixBase::createMatrix(unsigned short x, unsigned short y,
+                                   unsigned char noofchannels, unsigned char data_size)
+{
+    if(!is_free)
+    {
+        releaseMatrix();
+    }
+    channels  = noofchannels;
+    roi_rows = rows = y;
+    roi_cols = cols = x;
+    elem_size = data_size;
+    widthstep = roi_cols*channels*elem_size;
+    long size = roi_rows*roi_cols*channels*elem_size;
+    allocateMemory(size);
+    roi_data = data;
+    is_free = false;
+    is_ROI_set = false;
+    return true;
+}
+bool ImageMatrixBase::releaseMatrix()
+{
+    if(is_free)
+    {
+        //printErrorMessage("Matrix already in free state");
+        return true;
+    }
+    else
+    {
+        roi_rows = rows =0;
+        roi_cols = cols=0;
+        channels = 0;
+        widthstep = 0;
+        elem_size = 0;
+        delete[] data;
+        roi_data = NULL;
+        is_free = true;
+        is_ROI_set = false;
+        return true;
+    }
+}
+bool ImageMatrixBase::matToMatrix(cv::Mat &input)
+{
+    createMatrix(input.cols,input.rows,input.channels(),input.elemSize1());
+    memcpy(roi_data,input.data,roi_rows*roi_cols*channels*elem_size);
+    return true;
+}
+bool ImageMatrixBase::matrixToMat(cv::Mat &input)
+{
+    if(input.channels()==channels)
+    {
+        if(roi_rows==input.rows)
+        {
+            if(roi_cols==input.cols)
+            {
+                if(elem_size==input.elemSize1())
+                {
+                    if((roi_rows==rows)&&(roi_cols==cols))
+                    {
+                        long size = roi_rows*roi_cols*channels*elem_size;
+                        memcpy(input.data,roi_data,size);
+                        return true;
+                    }
+                    else   
+                    {
+                        long size = roi_cols*channels*elem_size;
+                        unsigned char* inp = (unsigned char *)input.data;
+                        for(int i =0;i<roi_rows;i++)
+                        {
+                            memcpy(&inp[i*size],&roi_data[i*widthstep],size);
+                        }
+                        printDebugMessage("not equal");
+                        return true;
+                    }
+                }
+                else
+                {
+                    printErrorMessage("element size is not same");
+                    return false;
+                }
+            }
+            else
+            {
+                printErrorMessage("cols are not same");
+                return false;
+            }
+        }
+        else
+        {
+            printErrorMessage("rows are not same");
+            return false;
+        }
+    }
+    else
+    {
+        printErrorMessage("No. of channels in the matrix are not same");
+        return false;
+    }
+}
+bool ImageMatrixBase::allocateMemory(long size)
+{
+    if(data!=NULL)
+    {
+        //delete[] data;   
+    }
+    data = new unsigned char[size];
+    if(data==0)
+    {
+        printErrorMessage("Cannot not allocate memory ");
+        return false;
+    }
+    else
+    {
+        //printDebugMessage("Memory allcated");
+        return true;
+    }
+}
+bool ImageMatrixBase::setROI(Point &start, Point &range)
+{
+   unsigned x_limit,y_limit;
+   x_limit = range.x+start.x;
+   y_limit = range.y+start.y;
+   if((x_limit<=roi_cols)&&(y_limit<=roi_rows))
+   {
+       roi_rows = range.y;
+       roi_cols = range.x;
+       roi_data = &data[start.y*widthstep+start.x*channels];
+       is_ROI_set = true;
+       return true;
+   }
+   else
+   {
+       printErrorMessage("can not set the ROI removing previous ROI");
+       removeROI();
+       return false;
+   }
+}
+bool ImageMatrixBase::removeROI()
+{
+    if(is_free)
+    {
+        printErrorMessage("Matrix has no memory");
+        return false;
+    }
+    else
+    {
+        roi_rows = rows;
+        roi_cols = cols;
+        roi_data = data;
+        return true;
+    }
+}
+ImageMatrixBase::~ImageMatrixBase()
+{
+    releaseMatrix();
+}
+
+
+
+
+ImageMatrixUchar::ImageMatrixUchar()
+{
+    
+}
+bool ImageMatrixUchar::newMatrix(unsigned short x, unsigned short y, unsigned char noofchannels=1)
+{
+    return createMatrix(x,y,noofchannels,sizeof(char));
+}
+bool ImageMatrixUchar::setData(unsigned short x, unsigned short y, unsigned char value)
+{
+    if((x<roi_cols)&&(y<roi_rows))
+    {
+        data[y*widthstep+x*channels] = value;
+        return true;
+    }
+    else
+        return false;
+}
+unsigned char* ImageMatrixUchar::getDataPointer()
+{
+    return roi_data;
+}
+ImageMatrixUchar::~ImageMatrixUchar()
+{
+}
+
+
+
+
+
+ImageMatrixFloat::ImageMatrixFloat()
+{
+    data_float = (float*)data;
+}
+bool ImageMatrixFloat::newMatrix(unsigned short x, unsigned short y, unsigned char noofchannels=1)
+{
+    return createMatrix(x,y,noofchannels,sizeof(float));
+}
+bool ImageMatrixFloat::setData(unsigned short x, unsigned short y, float value)
+{
+    if((x<roi_cols)&&(y<roi_rows))
+    {
+        data_float = (float *)data;
+        data_float[y*widthstep+x]=value;
+        return true;
+    }
+    else
+        return false;
+}
+float ImageMatrixFloat::getData(unsigned short x, unsigned short y)
+{
+    if((x<roi_cols)&&(y<roi_rows))
+    {
+        data_float = (float *)data;
+        return data_float[y*widthstep+x];
+    }
+    else
+        return -1;
+}
+float* ImageMatrixFloat::getDataPointer()
+{
+    data_float = (float *)roi_data;
+    return data_float;
+}
+
+ImageMatrixFloat::~ImageMatrixFloat()
+{
+}
+
+bool copy(ImageMatrixUchar &input, ImageMatrixUchar &output)
+{   
+    if(input.getNoOfChannels()==output.getNoOfChannels())
+    {
+        if(output.getRows()==input.getRows())
+        {
+            if(output.getCols()==input.getCols())
+            {
+                if(output.getElemSize()==input.getElemSize())
+                {
+                    int output_widthstep = output.getWidthstep();
+                    unsigned char* input_data = input.getDataPointer();
+                    unsigned char* output_data = output.getDataPointer();
+                    int input_widthstep = input.getWidthstep();
+                    for(int i =0;i<output.getRows();i++)
+                    {
+                        memcpy(&output_data[i*output_widthstep],&input_data[i*input_widthstep],input_widthstep);
+                    }
+                    return true;
+                }
+                else
+                {
+                    printErrorMessage("element size is not same");
+                    return false;
+                }
+            }
+            else
+            {
+                printErrorMessage("cols are not same");
+                return false;
+            }
+        }
+        else
+        {
+            printErrorMessage("rows are not same");
+            return false;
+        }
+    }
+    else
+    {
+        printErrorMessage("No. of channels in the matrix are not same");
+        return false;
+    }
+}
+}
+

@@ -1,0 +1,313 @@
+#include <test.hpp>
+namespace ohe_framework{
+
+int previous_y;
+int previous_x;
+double time;
+double previous_x_value;
+double current_x_value;
+double previous_ux_value;
+double current_ux_value;
+double previous_ax_value;
+double previous_y_value;
+double current_y_value;
+double previous_uy_value;
+double current_uy_value;
+double previous_ay_value;
+
+void processImage(ImageMatrixUchar &color_image,
+                  std::vector<Blob> &contours)
+{
+    ImageMatrixUchar gray_image, threshold_image;
+    convertToGrayscale(color_image,gray_image);
+    cv::Mat gray(cv::Size(color_image.getCols(),color_image.getRows()),CV_8UC1);
+    gray_image.matrixToMat(gray);
+    cv::blur(gray,gray,cv::Size(5,5));
+    gray_image.matToMatrix(gray);
+    grayscaleToBinary(gray_image,threshold_image,110);
+    findContours(threshold_image,contours);
+    gray_image.~ImageMatrixUchar();
+    threshold_image.~ImageMatrixUchar();
+    gray.~Mat();
+}
+
+void separateContours(std::vector<Blob> &contours,
+                      std::vector<Blob> &small_wire,
+                      std::vector<Blob> &wire,
+                      std::vector<Blob> &mast,bool search)
+{
+    std::vector<Point> ratios;
+    for(int i=0;i<contours.size();i++)
+    {
+        Point start,end,ratio;
+        contours[i].getBoundingRectangle(start,end);
+        ratio.x = (end.x-start.x);
+        ratio.y = (end.y-start.y);
+        ratios.push_back(ratio);
+    }
+    for(int i=0;i<ratios.size();i++)
+    {
+        double ratio = (double)(ratios[i].x)/ratios[i].y;
+        int area = ratios[i].x*ratios[i].y;
+        if((ratio > 10)&&(area>100))
+        {
+            mast.push_back(contours[i]);
+        }
+        else
+        {
+            if(area<20&&search)
+            {
+                small_wire.push_back(contours[i]);
+            }
+            else
+            {
+                wire.push_back(contours[i]);
+            }
+        }
+    }
+}
+bool getNewPosition(std::vector<ImageMatrixUchar> &images,Point &roi_origin,
+                     Point &roi_range,std::vector<Point> &wire_points)
+{
+    std::vector<Blob> small_wire;
+    std::vector<Blob> wire;
+    std::vector<Blob> mast;
+    std::vector<Blob> contours;
+    std::vector<Blob> probable_upper;
+    std::vector<Blob> probable_lower;
+    bool search = true;
+    if(roi_range.x != images[0].getCols())
+    {
+        search = false;
+        previous_x_value = current_x_value;
+        previous_ux_value = current_ux_value;
+        current_x_value = previous_x_value+
+                previous_ux_value*time+previous_ax_value*time*time/2.0;
+        if((current_x_value) < roi_range.x/2.0)
+            roi_origin.x = 0;
+        else
+            roi_origin.x=(unsigned int)((int)current_x_value-roi_range.x/2.0);
+        if((previous_ux_value) < roi_range.y/2.0)
+            roi_origin.y = 0;
+        else
+            roi_origin.y=(unsigned int)((int)previous_y_value-roi_range.y/2.0);
+        previous_y = abs(((int)previous_y_value-roi_origin.y));
+        previous_x = abs(((int)current_x_value-roi_origin.x));
+        printDebugMessage("applying ROI");
+    }
+    else
+    {
+        resetCalulation();
+        roi_origin.x = 0;
+        roi_origin.y = 0;
+        printDebugMessage("searching for wire");
+    }
+    images[0].setROI(roi_origin,roi_range);
+    images[1].setROI(roi_origin,roi_range);
+    images[2].setROI(roi_origin,roi_range);
+    processImage(images[0],contours);
+    separateContours(contours,small_wire,wire,mast);
+    int flag=0;
+    if(mast.size()==0)
+    {
+        Point center1;
+        Point center2;
+        for(int i=0;i<wire.size();i++)
+        {
+            wire[i].getCenter(center1);
+            int center_outer_x = (int)center1.x;
+            int center_outer_y = (int)center1.y;
+            for(int j=i+1;j<wire.size();j++)
+            {
+                wire[j].getCenter(center2);
+                int center_inner_x = center2.x;
+                int center_inner_y = center2.y;
+                int delta_x = center_outer_x-center_inner_x;
+                int delta_y = center_outer_y-center_inner_y;
+                int computed_x = (center_outer_x+center_inner_x)/2;
+                int computed_y = (center_outer_y+center_inner_y)/2;
+                if(search)
+                {
+                    if(((abs(delta_x))<15)&&(abs(delta_y)>30))
+                    {
+                        plotContoursFill(images[1],wire[i],255,255,255);
+                        plotContoursFill(images[1],wire[j],255,255,255);
+                        if(delta_y>=0)
+                        {
+                            wire_points[0].x = center1.x+roi_origin.x;
+                            wire_points[0].y = center1.y+roi_origin.y;
+                            wire_points[1].x = center2.x+roi_origin.x;
+                            wire_points[1].y = center2.y+roi_origin.y;
+                        }
+                        else
+                        {
+                            wire_points[1].x = center1.x+roi_origin.x;
+                            wire_points[1].y = center1.y+roi_origin.y;
+                            wire_points[0].x = center2.x+roi_origin.x;
+                            wire_points[0].y = center2.y+roi_origin.y;
+                        }
+                        current_x_value = (double)(center_outer_x+center_inner_x)/2.0;
+                        previous_ux_value = (double)(current_x_value-roi_range.x/2.0)/2.0;
+                        previous_ax_value = 0;
+                        previous_y_value = (double)(center_outer_y+center_inner_y)/2.0;
+                        flag =1;
+                        
+/*                        if((center_outer_x+center_inner_x) < roi_range.x)
+                            roi_origin.x = 0;
+                        else
+                            roi_origin.x=((center_outer_x+center_inner_x-roi_range.x)/2);
+                        if((center_outer_y+center_inner_y) < roi_range.y)
+                            roi_origin.y = 0;
+                        else
+                            roi_origin.y=((center_outer_y+center_inner_y-roi_range.y)/2);*/
+                        break;
+                    }
+                }
+                else
+                {
+                    if(((abs(delta_x))<10)&&(abs(delta_y)>20)&&(computed_x>(previous_x-10))
+                            &&computed_x<(previous_x+10)&&computed_y>(previous_y-10)
+                            &&computed_y<(previous_y+10))
+                    {
+                        if(delta_y>=0)
+                        {
+                            probable_upper.push_back(wire[i]);
+                            probable_lower.push_back(wire[j]);
+                        }
+                        else
+                        {
+                            probable_upper.push_back(wire[j]);
+                            probable_lower.push_back(wire[i]);
+                        }
+                    }
+                }
+                if(flag==1&&search)
+                {
+                    printDebugMessage("inner Pair has been found switching to ROI mode");
+                    break;
+                }
+            }
+            if(flag==1&&search)
+            {
+                printDebugMessage("Pair has been found switching to ROI mode");
+                break;
+            }
+        }
+        if(!search)
+        {
+            if(findAndPlotProbablePair(images[1],
+                                       probable_upper,probable_lower,wire_points))
+            {
+                wire_points[1].x += roi_origin.x;
+                wire_points[1].y += roi_origin.y;
+                wire_points[0].x += roi_origin.x;
+                wire_points[0].y += roi_origin.y;
+                center1 = wire_points[0];
+                center2 = wire_points[1];
+                current_x_value = (double)(center1.x+center2.x)/2.0;
+                current_ux_value = (double)(current_x_value-previous_x_value);
+                previous_ax_value = (double)(current_ux_value-previous_ux_value);
+                previous_y_value = (double)(center2.y+center1.y)/2.0;
+                /*std::cout<<"estimated value "<< previous_x_value
+                        <<" "<<previous_y_value<<std::endl;
+                std::cout<<"found value "<< current_x_value
+                        <<" "<<previous_y_value<<std::endl;*/
+                flag = 1;
+            }
+            else
+            {
+                flag = 0;
+            }
+        }
+    }
+    else
+    {
+        printErrorMessage("Mast has been found switching to normal mode");
+        printErrorMessage("Mast Mast Mast");
+    }
+    //if(images.size()>2)
+    {
+        
+        for(int i =0; i<contours.size();i++)
+        {
+            plotContoursFill(images[2],contours[i],0,255,0);
+        }
+        
+    }
+    if(images.size()>3)
+    {
+        images[3].setROI(roi_origin,roi_range);
+        for(int i =0; i<mast.size();i++)
+        {
+            plotContoursFill(images[3],mast[i],255,0,0);
+        }
+        images[3].removeROI();
+    }
+    images[0].removeROI();
+    images[1].removeROI();
+    images[2].removeROI();
+    if(flag==0)
+    {
+        printErrorMessage("No contour has been found switching to normal mode");
+        return false;
+    }
+    else
+        return true;
+}
+
+bool findAndPlotProbablePair(ImageMatrixUchar &image,std::vector<Blob> &upper,
+                            std::vector<Blob> &lower,
+                            std::vector<Point> &wire_points)
+{
+    int best_match = 0;
+    long energy_min =10000000;
+    Point center1,center2;
+    for(int i =0;i<(int)upper.size();i++)
+    {
+        upper[i].getCenter(center1);
+        lower[i].getCenter(center2);
+        long energy = pow((int)((center1.x+center2.x)/2.0-previous_x),2)
+                +pow((int)((center1.y+center2.y)/2.0-previous_y),2);
+        if(energy<energy_min)
+        {
+            energy_min = energy;
+            best_match = i;
+        }
+    }
+    if(upper.size())
+    {
+        upper[best_match].getCenter(center1);
+        lower[best_match].getCenter(center2);
+        plotContoursFill(image,upper[best_match],255,255,255);
+        plotContoursFill(image,lower[best_match],255,255,255);
+        wire_points[0]=center1;
+        wire_points[1]=center2;
+        std::cout<<"best match "<<best_match<<"out of "<<upper.size()<<std::endl;
+        return true;
+    }
+    std::cout<<"no match found"<<std::endl;
+    return false;
+}
+
+void setTimeGap(double value)
+{
+    time = value;
+}
+
+void resetCalulation()
+{
+    previous_x_value = 0;
+    current_x_value = 0;
+    previous_ux_value = 0;
+    current_ux_value = 0;
+    previous_ax_value = 0;
+    previous_y_value = 0;
+    current_y_value = 0;
+    previous_uy_value = 0;
+    current_uy_value = 0;
+    previous_ay_value = 0;
+}
+
+} // end namespace ohe_framework
+
+

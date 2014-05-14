@@ -1,0 +1,51 @@
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
+
+#include <QtGui/QMainWindow>
+#include <ui_mainwindow.h>
+#include <test.hpp>
+#include <QLineEdit>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QString>
+#include <QTimer>
+#include <QImage>
+#include <matrix.hpp>
+#include <kplotobject.h>
+#include <kplotaxis.h>
+
+
+class MyWindow : public QMainWindow
+{
+    Q_OBJECT
+
+public:
+     MyWindow(QWidget *parent = 0);
+    ~MyWindow();
+     void closeEvent(QCloseEvent *);
+public Q_SLOTS:
+     void on_OpenFile_clicked();
+     void on_Start_clicked();
+     void on_Stop_clicked();
+     void on_Pause_clicked();
+     void on_updateImageGraph();
+private:
+    Ui::MainWindow *ui;
+    bool video_being_processed,wire_found;
+    int time, buffer_size, center_x,center_y,count;
+    cv::VideoCapture video_input;
+    std::string current_filename;
+    QTimer *timer;
+    cv::Mat image_raw,image_processed,image_Qimage;
+    std::vector<ohe_framework::ImageMatrixUchar> images;
+    cv::Size image_size;
+    ohe_framework::Point roi_origin,roi_pre_origin,roi_range;
+    std::vector<ohe_framework::Point> wire_points;
+    ohe_framework::CircularBufferPoint *vectors;
+    KPlotWidget *plot;
+    KPlotObject *waveform;
+    void displayGraph();
+    void displayImages();
+};
+
+#endif // MAINWINDOW_H

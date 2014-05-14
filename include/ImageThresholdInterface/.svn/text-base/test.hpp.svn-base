@@ -1,0 +1,36 @@
+#ifndef TEST_H
+#define TEST_H
+#include <stdio.h>
+#include <iostream>
+#include <pwd.h>
+#include <string.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <matrix.hpp>
+#include <points.hpp>
+#include <grayscale_to_binary.hpp>
+#include <rgb_to_grayscale.hpp>
+#include <printing.hpp>
+#include <contour_detection.hpp>
+#include <fstream>
+#include <ctime>
+namespace ohe_framework{
+
+void processImage(ImageMatrixUchar &color_image,
+                  std::vector<Blob> &contours);
+
+void separateContours(std::vector<Blob> &contours,
+                      std::vector<Blob> &small_wire,
+                      std::vector<Blob> &wire,
+                      std::vector<Blob> &mast, bool search = true);
+bool getNewPosition(std::vector<ImageMatrixUchar> &images,Point &roi_origin,
+                    Point &roi_range,std::vector<Point> &wire_points);
+bool findAndPlotProbablePair(ImageMatrixUchar &image,std::vector<Blob> &upper,
+                             std::vector<Blob> &lower,
+                             std::vector<Point> &wire_points);
+
+void setTimeGap(double value);
+void resetCalulation();
+} // end namespace ohe_framework
+#endif
