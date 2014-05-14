@@ -73,6 +73,15 @@ public Q_SLOTS:
      void on_mblurSlider_valueChanged(int value);
      void on_gblurSlider_valueChanged(int value);
 
+     void on_dilateCheck_clicked();
+     void on_erodeCheck_clicked();
+
+     void on_morphellipse_clicked();
+     void on_morphrect_clicked();
+     void on_morphcross_clicked();
+
+     void on_kernelSizeSlider_valueChanged(int value);
+
      // manual callbacks
      void on_updateImages(); 
      //i->colorImage->mouseDoubleClickEvent();
@@ -92,6 +101,10 @@ private:
     void setThresh();
 
     int mblurVal, gblurVal, blurVal;
+
+    bool dilate_b, erode_b;
+
+    int kernelSizeVal, kernelShape;
 };
 
 

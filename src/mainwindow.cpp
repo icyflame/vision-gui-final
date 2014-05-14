@@ -26,6 +26,16 @@ MyWindow::MyWindow(QWidget *parent) :
     video_being_processed = false;
     camera_opend = false;
 
+    mblurVal = 1;
+    gblurVal = 1;
+    blurVal = 1;
+
+    dilate_b = false;
+    erode_b = false;
+
+    kernelSizeVal = 3;
+    kernelShape = 0;
+
     //    mblurVal = 5;
 
 }
@@ -70,7 +80,7 @@ void MyWindow::on_openFile_clicked()
 {
     QString filename = QFileDialog::getOpenFileName(this,
                                                     tr("Open File"),
-                                                    "/home/vinay/ros_workspace/ikat-auv-packages","*.th");
+                                                    "/home/","*.th");
     if(!filename.isEmpty())
     {
         fileName = filename.toStdString();
@@ -287,7 +297,7 @@ void MyWindow::on_mblurSlider_valueChanged(int value){
 }
 
 void MyWindow::on_gblurSlider_valueChanged(int value){
-    gblurVal = value;
+    gblurVal = 2 * value + 1;
     std::cout << "The value of gblur is :- " << gblurVal << "\n";
     //    std::cout << "value changed!";
     std::ostringstream str;
@@ -296,7 +306,39 @@ void MyWindow::on_gblurSlider_valueChanged(int value){
     return;
 }
 
+void MyWindow::on_dilateCheck_clicked(){
+    dilate_b = !dilate_b;
 
+    std::cout << dilate_b;
+}
+
+void MyWindow::on_erodeCheck_clicked(){
+    erode_b = !erode_b;
+
+    std::cout << erode_b;
+}
+
+void MyWindow::on_morphellipse_clicked(){
+    kernelShape = 0;
+    std::cout << kernelShape;
+}
+
+void MyWindow::on_morphrect_clicked(){
+    kernelShape = 1;
+    std::cout << kernelShape;
+}
+
+void MyWindow::on_morphcross_clicked(){
+    kernelShape = 2;
+    std::cout << kernelShape;
+}
+
+void MyWindow::on_kernelSizeSlider_valueChanged(int value){
+    kernelSizeVal = value;
+    std::ostringstream str;
+    str << value;
+    ui->kernelSizeLineEdit->setText(QString(str.str().c_str()));
+}
 
 void MyWindow::on_BlobValue_slider_valueChanged(int value)
 {
@@ -328,8 +370,39 @@ void MyWindow::on_updateImages()
         cam>>camImage;
         cv::resize(camImage,colorImage,cv::Size(320,240));
         cv::cvtColor(colorImage,thImage,CV_RGB2HSV_FULL);
-//        cv::blur(thImage,thImage,blurVal);
-        cv::medianBlur(thImage,thImage,mblurVal);
+
+        using namespace cv;
+
+        blur(thImage, thImage, Size(blurVal,blurVal));
+        medianBlur(thImage,thImage,mblurVal);
+        GaussianBlur(thImage, thImage, Size(gblurVal,gblurVal), 0);
+
+        using namespace cv;
+
+        Mat dilatekernel;
+
+        if(kernelShape == 0)
+
+            dilatekernel = getStructuringElement(MORPH_ELLIPSE, Size(kernelSizeVal, kernelSizeVal));
+
+        if(kernelShape == 1)
+
+            dilatekernel = getStructuringElement(MORPH_RECT, Size(kernelSizeVal, kernelSizeVal));
+
+        if(kernelShape == 2)
+
+            dilatekernel = getStructuringElement(MORPH_CROSS, Size(kernelSizeVal, kernelSizeVal));
+
+        // First and second both argument selectable
+
+        if(dilate_b)
+
+            dilate(thImage, thImage, dilatekernel);
+
+        if(erode_b)
+
+            erode(thImage, thImage, dilatekernel);
+
         cv::inRange(thImage,start,end,binaryImage);
         displayImages();
     }
