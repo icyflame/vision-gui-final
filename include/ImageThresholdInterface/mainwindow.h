@@ -82,6 +82,12 @@ public Q_SLOTS:
 
      void on_kernelSizeSlider_valueChanged(int value);
 
+     void on_contoursCheck_clicked();
+
+     void on_boundrectCheck_clicked();
+     void on_boundcircleCheck_clicked();
+     void on_approxpolyCheck_clicked();
+
      // manual callbacks
      void on_updateImages(); 
      //i->colorImage->mouseDoubleClickEvent();
@@ -105,6 +111,10 @@ private:
     bool dilate_b, erode_b;
 
     int kernelSizeVal, kernelShape;
+
+    bool draw_contours;
+
+    bool rectContours, circleContours, polyContours;
 };
 
 

@@ -1,5 +1,10 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
 
 MyWindow::MyWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -36,7 +41,15 @@ MyWindow::MyWindow(QWidget *parent) :
     kernelSizeVal = 3;
     kernelShape = 0;
 
-    //    mblurVal = 5;
+    draw_contours = false;
+
+    ui->boundrectCheck->setEnabled(draw_contours);
+    ui->boundcircleCheck->setEnabled(draw_contours);
+    ui->approxpolyCheck->setEnabled(draw_contours);
+
+    rectContours = false;
+    circleContours = false;
+    polyContours = false;
 
 }
 
@@ -340,6 +353,26 @@ void MyWindow::on_kernelSizeSlider_valueChanged(int value){
     ui->kernelSizeLineEdit->setText(QString(str.str().c_str()));
 }
 
+void MyWindow::on_contoursCheck_clicked(){
+    draw_contours = !draw_contours;
+
+    ui->boundrectCheck->setEnabled(draw_contours);
+    ui->boundcircleCheck->setEnabled(draw_contours);
+    ui->approxpolyCheck->setEnabled(draw_contours);
+}
+
+void MyWindow::on_boundrectCheck_clicked(){
+    rectContours = !rectContours;
+}
+
+void MyWindow::on_boundcircleCheck_clicked(){
+    circleContours = !circleContours;
+}
+void MyWindow::on_approxpolyCheck_clicked(){
+    polyContours = !polyContours;
+}
+
+
 void MyWindow::on_BlobValue_slider_valueChanged(int value)
 {
     std::ostringstream str;
@@ -373,6 +406,8 @@ void MyWindow::on_updateImages()
 
         using namespace cv;
 
+        inRange(thImage,start,end,thImage);
+
         blur(thImage, thImage, Size(blurVal,blurVal));
         medianBlur(thImage,thImage,mblurVal);
         GaussianBlur(thImage, thImage, Size(gblurVal,gblurVal), 0);
@@ -403,7 +438,51 @@ void MyWindow::on_updateImages()
 
             erode(thImage, thImage, dilatekernel);
 
-        cv::inRange(thImage,start,end,binaryImage);
+        binaryImage = thImage;
+
+        Mat drawing;
+
+        if(draw_contours){
+            // Drawing contours
+
+            int thresh = 100;
+            RNG rng(12345);
+
+            Mat threshold_output;
+            vector<vector<Point> > contours;
+            vector<Vec4i> hierarchy;
+
+            threshold( thImage, threshold_output, thresh, 255, THRESH_BINARY );
+            /// Find contours
+            findContours( threshold_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
+
+            /// Approximate contours to polygons + get bounding rects and circles
+            vector<vector<Point> > contours_poly( contours.size() );
+            vector<Rect> boundRect( contours.size() );
+            vector<Point2f>center( contours.size() );
+            vector<float>radius( contours.size() );
+
+            for( int i = 0; i < contours.size(); i++ )
+            { approxPolyDP( Mat(contours[i]), contours_poly[i], 3, true );
+                boundRect[i] = boundingRect( Mat(contours_poly[i]) );
+                minEnclosingCircle( (Mat)contours_poly[i], center[i], radius[i] );
+            }
+
+            // Draw polygonal contour + bonding rects + circles
+            drawing = Mat::zeros( threshold_output.size(), CV_8UC3 );
+            for( int i = 0; i< contours.size(); i++ )
+            {
+                Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+                if(polyContours)
+                    drawContours( colorImage, contours_poly, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
+                if(rectContours)
+                    rectangle( colorImage, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0 );
+                if(circleContours)
+                    circle( colorImage, center[i], (int)radius[i], color, 2, 8, 0 );
+            }
+
+        }
+
         displayImages();
     }
     else
