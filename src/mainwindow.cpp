@@ -1,5 +1,4 @@
-#include "mainwindow.h"
-#include "ui_mainwindow.h"
+#include <ImageNew/mainwindow.hpp>
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include <iostream>
@@ -65,6 +64,13 @@ MyWindow::MyWindow(QWidget *parent) :
     hough_enabled = false;
     hough_lines_enabled = false;
 
+    blob_enabled = false;
+
+    bg_r = 255;
+    fg_r = 255;
+    filter_arg2 = B_LESS;
+    filter_arg4 = B_INCLUDE;
+    filter_arg5_area = 500;
 }
 
 void MyWindow::setThresh()
@@ -172,7 +178,6 @@ void MyWindow::on_writeFile_clicked()
         file<<H_max<<std::endl;
         file<<S_max<<std::endl;
         file<<V_max<<std::endl;
-        file<<ui->BlobValue_slider->value()<<std::endl;
         file.close();
     }
     else
@@ -410,12 +415,90 @@ void MyWindow::on_houghLinesCheck_clicked(){
     hough_lines_enabled = !hough_lines_enabled;
 }
 
-void MyWindow::on_BlobValue_slider_valueChanged(int value)
-{
+void MyWindow::on_blobCheck_clicked(){
+    blob_enabled = !blob_enabled;
+}
+
+void MyWindow::on_backgroundRSlider_valueChanged(int value){
+    bg_r = value;
+
     std::ostringstream str;
-    str<<value;
-    ui->BlobValue_text->setText(QString(str.str().c_str()));
-    setThresh();
+    str << value;
+    ui->backgroundRSliderLE->setText(QString(str.str().c_str()));
+
+}
+
+//void MyWindow::on_backgroundGSlider_valueChanged(int value){
+//    bg_g = value;
+
+//    std::ostringstream str;
+//    str << value;
+//    ui->backgroundGSliderLE->setText(QString(str.str().c_str()));
+
+//}
+
+//void MyWindow::on_backgroundBSlider_valueChanged(int value){
+//    bg_b = value;
+
+//    std::ostringstream str;
+//    str << value;
+//    ui->backgroundBSliderLE->setText(QString(str.str().c_str()));
+
+//}
+
+void MyWindow::on_foregroundRSlider_valueChanged(int value){
+    fg_r = value;
+
+    std::ostringstream str;
+    str << value;
+    ui->foregroundRSliderLE->setText(QString(str.str().c_str()));
+
+}
+
+//void MyWindow::on_foregroundGSlider_valueChanged(int value){
+//    fg_g = value;
+
+//    std::ostringstream str;
+//    str << value;
+//    ui->foregroundGSliderLE->setText(QString(str.str().c_str()));
+
+//}
+
+//void MyWindow::on_foregroundBSlider_valueChanged(int value){
+//    fg_b = value;
+
+//    std::ostringstream str;
+//    str << value;
+//    ui->foregroundBSliderLE->setText(QString(str.str().c_str()));
+
+//}
+
+void MyWindow::on_areablobSlider_valueChanged(int value){
+    filter_arg5_area = value;
+
+    std::ostringstream str;
+    str << value;
+    ui->areablobSliderLE->setText(QString(str.str().c_str()));
+}
+
+void MyWindow::on_areablobLess_clicked(){
+
+    filter_arg4 = B_LESS;
+
+}
+
+void MyWindow::on_areablobMore_clicked(){
+    filter_arg4 = B_GREATER;
+}
+
+
+void MyWindow::on_blobInclude_clicked(){
+    filter_arg2 = B_INCLUDE;
+}
+
+
+void MyWindow::on_blobExclude_clicked(){
+    filter_arg2 = B_EXCLUDE;
 }
 
 void MyWindow::on_colorImage_mouseDoubleClickEvent(QMouseEvent *ev)
@@ -477,27 +560,38 @@ void MyWindow::on_updateImages()
 
         /////////////////////////////////////////////////////////////
 
-        IplImage Iipl = thImage;
 
-        CBlobResult blobs, blobsclutter;
-        CBlob * currentBlob;
+        if(blob_enabled){
 
-        blobs = CBlobResult(&Iipl, NULL, 255);
+            IplImage Iipl = thImage;
 
-        blobs.Filter(blobs, B_INCLUDE, CBlobGetArea(), B_LESS, 500);
-        for (int i = 0; i < blobs.GetNumBlobs(); i++ )
-        {
-            currentBlob = blobs.GetBlob(i);
-            currentBlob->FillBlob(&Iipl,Scalar(255));
+            CBlobResult blobs, blobsclutter;
+            CBlob * currentBlob;
+
+            blobs = CBlobResult(&Iipl, NULL, bg_r);
+
+            // The last parameter indicates the background. That is the color
+            // on which we are searching for the clutter.
+
+            // The last parameter in fillblob is the color with which we want to fill
+            // the clutter that we found.
+
+            blobs.Filter(blobs, filter_arg2, CBlobGetArea(), filter_arg4, filter_arg5_area);
+            for (int i = 0; i < blobs.GetNumBlobs(); i++ )
+            {
+                currentBlob = blobs.GetBlob(i);
+                currentBlob->FillBlob(&Iipl,Scalar(fg_r));
+            }
+
+            //        blobsclutter = CBlobResult(&Iipl, NULL, 0);
+            //        blobsclutter.Filter(blobsclutter, B_INCLUDE, CBlobGetArea(), B_LESS, 500);
+            //        for (int i = 0; i < blobsclutter.GetNumBlobs(); i++ )
+            //        {
+            //            currentBlob = blobsclutter.GetBlob(i);
+            //            currentBlob->FillBlob(&Iipl,Scalar(0));
+            //        }
+
         }
-
-//        blobsclutter = CBlobResult(&Iipl, NULL, 0);
-//        blobsclutter.Filter(blobsclutter, B_INCLUDE, CBlobGetArea(), B_LESS, 500);
-//        for (int i = 0; i < blobsclutter.GetNumBlobs(); i++ )
-//        {
-//            currentBlob = blobsclutter.GetBlob(i);
-//            currentBlob->FillBlob(&Iipl,Scalar(0));
-//        }
 
         binaryImage = thImage;
 

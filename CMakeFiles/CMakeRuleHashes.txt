@@ -1,3 +1,0 @@
-# Hashes of file build rules.
-f836165ce3c450703363496bc2adefb0 include/ImageThresholdInterface/moc_mainwindow.cxx
-919ca3755ba563d4ddbfa77e1fe25d2f ui_mainwindow.h
