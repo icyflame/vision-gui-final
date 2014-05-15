@@ -6,6 +6,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <blob/blob.h>
+#include <blob/BlobResult.h>
+#include <blob/BlobContour.h>
+#include <blob/BlobLibraryConfiguration.h>
+#include <blob/BlobOperators.h>
+#include <blob/ComponentLabeling.h>
+#include <blob/BlobProperties.h>
+
 MyWindow::MyWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -467,6 +475,30 @@ void MyWindow::on_updateImages()
 
             erode(thImage, thImage, dilatekernel);
 
+        /////////////////////////////////////////////////////////////
+
+        IplImage Iipl = thImage;
+
+        CBlobResult blobs, blobsclutter;
+        CBlob * currentBlob;
+
+        blobs = CBlobResult(&Iipl, NULL, 255);
+
+        blobs.Filter(blobs, B_INCLUDE, CBlobGetArea(), B_LESS, 500);
+        for (int i = 0; i < blobs.GetNumBlobs(); i++ )
+        {
+            currentBlob = blobs.GetBlob(i);
+            currentBlob->FillBlob(&Iipl,Scalar(255));
+        }
+
+//        blobsclutter = CBlobResult(&Iipl, NULL, 0);
+//        blobsclutter.Filter(blobsclutter, B_INCLUDE, CBlobGetArea(), B_LESS, 500);
+//        for (int i = 0; i < blobsclutter.GetNumBlobs(); i++ )
+//        {
+//            currentBlob = blobsclutter.GetBlob(i);
+//            currentBlob->FillBlob(&Iipl,Scalar(0));
+//        }
+
         binaryImage = thImage;
 
         Mat drawing;
@@ -581,4 +613,3 @@ void MyWindow::closeEvent(QCloseEvent *)
     {
     }
 }
-
