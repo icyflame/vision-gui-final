@@ -364,54 +364,54 @@ void MyWindow::on_openCamera_clicked()
     camera_opend = false;
     std::cout<<ui->cameraNo->currentIndex()<<std::endl;
 
-    //    if (ui->cameraNo->currentIndex() == 2){
-    //        fn_video = QFileDialog::getOpenFileName(this,
-    //                                                tr("Open File"),
-    //                                                "/home/","*.avi");
+    if (ui->cameraNo->currentIndex() == 2){
+        fn_video = QFileDialog::getOpenFileName(this,
+                                                tr("Open File"),
+                                                "/home/","*.avi");
 
-    //        std::cout <<"Opening : " << fn_video.toUtf8().constData() << std::endl;
+        std::cout <<"Opening : " << fn_video.toUtf8().constData() << std::endl;
 
-    //        if(cam.open(fn_video.toUtf8().constData())){
-    //            camera_opend = true;
-    //            source_from_log = true;
-    //            ui->openCamera->setEnabled(false);
-    //            ui->startCamera->setEnabled(true);
-    //            ui->pauseCamera->setEnabled(false);
-    //            ui->closeCamera->setEnabled(false);
+        if(cam.open(fn_video.toUtf8().constData())){
+            camera_opend = true;
+            source_from_log = true;
+            ui->openCamera->setEnabled(false);
+            ui->startCamera->setEnabled(true);
+            ui->pauseCamera->setEnabled(false);
+            ui->closeCamera->setEnabled(false);
 
-    //        }
+        }
 
-    //        else{
+        else{
 
-    //            QMessageBox::question(  this,
-    //                                    tr("Error"),
-    //                                    "Could not open the requested video.",
-    //                                    QMessageBox::Ok);
+            QMessageBox::question(  this,
+                                    tr("Error"),
+                                    "Could not open the requested video.",
+                                    QMessageBox::Ok);
 
 
-    //        }
-    //    }
-
-    //    else
-
-    if(cam.open(ui->cameraNo->currentIndex()))
-    {
-        camera_opend = true;
-        ui->openCamera->setEnabled(false);
-        ui->startCamera->setEnabled(true);
-        ui->pauseCamera->setEnabled(false);
-        ui->closeCamera->setEnabled(false);
+        }
     }
+
     else
-    {
 
-        QMessageBox::question(  this,
-                                tr("Error"),
-                                "Could not open the camera.",
-                                QMessageBox::Ok);
+        if(cam.open(ui->cameraNo->currentIndex()))
+        {
+            camera_opend = true;
+            ui->openCamera->setEnabled(false);
+            ui->startCamera->setEnabled(true);
+            ui->pauseCamera->setEnabled(false);
+            ui->closeCamera->setEnabled(false);
+        }
+        else
+        {
+
+            QMessageBox::question(  this,
+                                    tr("Error"),
+                                    "Could not open the camera.",
+                                    QMessageBox::Ok);
 
 
-    }
+        }
 }
 
 void MyWindow::on_startCamera_clicked()
@@ -714,28 +714,28 @@ void MyWindow::on_updateImages()
 {
     if(video_being_processed)
     {
-        cam>>camImage;
+        cam >> camImage;
 
-        //        if(camImage.empty() && source_from_log){
-        //            std::cout << "Entered the empty image branch!";
+        if(camImage.empty() && source_from_log){
+            std::cout << "Entered the empty image branch!";
 
-        //            cam.release();
+            cam.release();
 
-        //            if(cam.open(fn_video.toUtf8().constData()))
-        //                cam >> camImage;
+            if(cam.open(fn_video.toUtf8().constData()))
+                cam >> camImage;
 
-        //            else
-        //            {
-        //                video_being_processed = false;
-        //                camera_opend = false;
-        //                cam.release();
-        //                ui->openCamera->setEnabled(true);
-        //                ui->startCamera->setEnabled(false);
-        //                ui->pauseCamera->setEnabled(false);
-        //                ui->closeCamera->setEnabled(false);
-        //            }
+            else
+            {
+                video_being_processed = false;
+                camera_opend = false;
+                cam.release();
+                ui->openCamera->setEnabled(true);
+                ui->startCamera->setEnabled(false);
+                ui->pauseCamera->setEnabled(false);
+                ui->closeCamera->setEnabled(false);
+            }
 
-        //        }
+        }
 
         cv::resize(camImage,colorImage,cv::Size(320,240));
         cv::cvtColor(colorImage,thImage,CV_RGB2HSV_FULL);
